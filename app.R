@@ -1,7 +1,7 @@
 # Shiny UI for the "plot_scciimap_srv.R" map plotting script for the Swiss Canopy Crane site
 # Code by D.Basler 2024
 
-packages <- c("shiny","colourpicker","tidyverse","plotrix","shape","png","readxl")
+packages <- c("shiny","colourpicker","dplyr","plotrix","shape","png","readxl")
 install.packages(setdiff(packages, rownames(installed.packages())))
 
 library(shiny)

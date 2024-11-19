@@ -1,9 +1,9 @@
 #sccii_plotmapp
 # This script provides functions create multi-layered maps for the SCCII-hoelstein site
 # Code by D.Basler 2022-2024, based on rudimentary code by C.Zahnd 2020
-
+options(stringsAsFactors = FALSE)
 #Load Packages:
-library(tidyverse)
+library(dplyr)
 library(plotrix)
 library(shape)
 library(png)
@@ -35,8 +35,8 @@ data_import<-function(mapdatapath,metadatapath){
   roofs     <<- read_excel(path = file.path(mapdatapath ,"./datasheets/roofs_final.xlsx"), sheet = 1, na = "NA")
   raintraps <<- read_excel(path = file.path(mapdatapath ,"./datasheets/raintraps.xlsx"), sheet = 1, na = "NA")
   # Soil pits are hard-coded, see below
-  sapflow_logger <<- read_delim(file.path(mapdatapath ,"./datasheets/sapflow_logger_pos.csv"),delim="\t")
-  sapflow_trees <- read_delim(file.path(mapdatapath ,"./datasheets/sapflow_logger_trees.csv"),delim="\t")
+  sapflow_logger <<- read.table(file.path(mapdatapath ,"./datasheets/sapflow_logger_pos.csv"),sep="\t",header=TRUE)
+  sapflow_trees <- read.table(file.path(mapdatapath ,"./datasheets/sapflow_logger_trees.csv"),sep="\t",header=TRUE)
   names(sapflow_trees)[2]<-"nr"
   sapflow_trees<-merge(sapflow_trees,metadata[,c("nr","defx","defy")],by="nr")
   sapflow_trees<<-sapflow_trees
@@ -507,7 +507,7 @@ plotmap<-function(metadata,GlobalMapOptions){
   if (GlobalMapOptions$raintraps)     plot_raintraps()
   message("+ Campaign")
   # Campaign routes
-  if (GlobalMapOptions$craneroute=="NA" | GlobalMapOptions$craneroute=="None") GlobalMapOptions$craneroute<-NA
+  if (!is.na( GlobalMapOptions$craneroute))if (GlobalMapOptions$craneroute=="NA" | GlobalMapOptions$craneroute=="None") GlobalMapOptions$craneroute<-NA
   if (!is.na(GlobalMapOptions$craneroute)) craneroute_trees<-plot_craneroute(GlobalMapOptions$craneroute,GlobalMapOptions$craneroutearrows)
   message("+ Trees")
   ntree_layers<-length(GlobalMapOptions$trees)
