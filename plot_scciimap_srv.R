@@ -12,8 +12,7 @@ library(readxl)
 
 ############### PLOTTING FUNCTIONS
 data_import<-function(mapdatapath,metadatapath){
-  metadata <- read_excel(path = file.path(mapdatapath ,"datasheets/4.1. Metadata_Trees_SCCII 2.xlsx"), sheet = 1, na = "NA")
-  #metadata <- read_excel(path = file.path(metadatapath ,"4.1. Metadata_Trees_SCCII 2.xlsx"), sheet = 1, na = "NA")
+  metadata <- read_excel(path = file.path(mapdatapath ,"datasheets/Metadata_Trees_SCCII.xlsx"), sheet = 1, na = "NA")
   metadata <-LV03toLocal(metadata)
   metadata <-metadata[!is.na(metadata$species),]
   metadata <-metadata[-grep("x",metadata$nr),]
@@ -78,18 +77,26 @@ col2hex <- function(x, alpha = FALSE) {
   do.call(rgb, args)
 }
 
-parse_flt_string<-function(fltstr,year,mdn){ # mdn is metadatanames , do not include _year in filter arguments, this will be applied from the year selected in the Golbal Options
+parse_flt_string<-function(fltstr,year,metadata){ # mdn is metadatanames , do not include _year in filter arguments, this will be applied from the year selected in the Golbal Options
+  mdn<-names(metadata)
   if (is.null(fltstr) || fltstr=="all" || fltstr=="") return(TRUE)  
   if (grepl("&$", fltstr) || grepl("\\|$", fltstr)) fltstr<-substr(fltstr,1,nchar(fltstr)-1) # Remove & or | from end of lines
   ystr<-as.character(year)
+  # Handle missing DBH measurements
+  if (grepl("dbh",fltstr) &  sprintf("dbh_%s",ystr) %in% mdn) {
+    metadata$dbh[!is.na(metadata[[sprintf("dbh_%s",ystr)]])]<- metadata[!is.na(metadata[[sprintf("dbh_%s",ystr)]]),sprintf("dbh_%s",ystr)]
+    mdn<-mdn[-which(mdn==sprintf("dbh_%s",ystr))]
+  }
+  if (as.numeric(ystr) < 2021) fltstr<-gsub("status","status_2021",fltstr) # Handle Missing Status column pre2018
+  for ( n in substr(mdn[endsWith(mdn,ystr)],1,nchar(mdn[endsWith(mdn,ystr)])-5) ) fltstr<-sub(n,sprintf("%s_%s",n,ystr),fltstr)
   for (n in mdn) fltstr<-sub(n,sprintf("metadata$%s",n),fltstr) # Add Table Name
-  for ( n in substr(mdn[endsWith(mdn,ystr)],1,nchar(mdn[endsWith(mdn,ystr)])-5) ) fltstr<-sub(n,sprintf("metadata$%s_%s",n,ystr),fltstr)
   fltstr <- sub('alive',sprintf("metadata$status_%s=='a'",ystr),fltstr)
   fltstr <- sub('dead',sprintf("metadata$status_%s!='a'",ystr),fltstr)
   print(fltstr)
   return(eval(parse(text = fltstr)))
 }
 
+  
 treecolor<-function(species=NULL,as.hex=TRUE){
   tc<-data.frame(
     latin = c("Pinus sylvestris",
@@ -138,7 +145,7 @@ treecolor<-function(species=NULL,as.hex=TRUE){
                 "Elm (sp.)",
                 "Trees"),
     conifer=c(T,F,F,F,F,T,F,F,F,T,F,T,F,F,NA),
-    species=c("ps" ,"qs" ,"ap"  ,"fe"  ,"fs"  ,"aa"  ,"cb"  ,"ia"  ,"jr"  ,"pa"  ,"pm"  ,"st"  ,"us"  ,"pu", "tr"),
+    species=c("ps" ,"qs" ,"ap"  ,"fe"  ,"fs"  ,"aa"  ,"cb"  ,"ia"  ,"jr"  ,"pa"  ,"pm"  ,"st"  ,"us"  ,"pr", "tr"),
     col=c("darkseagreen3", "darkorange3",  "gold1",  "black",  "dodgerblue2",  "lightseagreen",  "grey60",  "red",  "saddlebrown",  "forestgreen",  "limegreen",  "orange",  "navajowhite3",  "maroon3","grey60")
   )
   tc<-tc[order(tc$conifer,tc$species),]
@@ -276,6 +283,7 @@ mark_trees<-function(data,mark,markcol,pcex=1){
   markwidth<-3
   markheight<-2
   with( data[data$mark == "circle",], points(defx, defy, pch = 1, cex = 2.4+pcex-1, col = data$markcol[mark == "circle"] ,lwd=2 ))
+  with( data[data$mark == "cross",],  points(defx, defy, pch = 4, cex = 2.4+pcex-1, col = data$markcol[mark == "cross"] ,lwd=2 ))
   
   with(data[data$mark == "underline" & data$nr_pos == "b",], segments(defx-markwidth/2, defy - (((sqrt(dbh)/4)+1)/2)-1,defx+markwidth/2, defy - (((sqrt(dbh)/4)+1)/2)-1,lwd=3,col=data$markcol[data$mark == "underline" & data$nr_pos == "b"]))
   with(data[data$mark == "underline" & data$nr_pos == "t",], segments(defx-markwidth/2, defy + (((sqrt(dbh)/4)+1)/2)-0.8,defx+markwidth/2, defy + (((sqrt(dbh)/4)+1)/2)-0.8,lwd=3,col=data$markcol[data$mark == "underline" & data$nr_pos == "t"]))
@@ -514,7 +522,7 @@ plotmap<-function(metadata,GlobalMapOptions){
   if (ntree_layers>0){
     for (i in 1:ntree_layers){
       ## PARSE FLT
-      flt<-parse_flt_string(GlobalMapOptions$trees[[i]]$flt,GlobalMapOptions$year,names(metadata))
+      flt<-parse_flt_string(GlobalMapOptions$trees[[i]]$flt,GlobalMapOptions$year,metadata)
       
       if (length(GlobalMapOptions$trees[[i]]$highlight_shape)==0) return()
       
@@ -568,7 +576,7 @@ plot_legend<-function(GlobalMapOptions){
   ntree_layers<-length(GlobalMapOptions$trees)
   if (ntree_layers>0){
     for (i in 1:ntree_layers){
-      flt<-parse_flt_string(GlobalMapOptions$trees[[i]]$flt,GlobalMapOptions$year,names(metadata))
+      flt<-parse_flt_string(GlobalMapOptions$trees[[i]]$flt,GlobalMapOptions$year,metadata)
       if (GlobalMapOptions$trees[[i]]$speciescolor==TRUE & is.na(GlobalMapOptions$trees[[i]]$highlight_shape) ){
         species<-c(species,unique(metadata$species[flt]))
         measurements<-c(measurements,names(GlobalMapOptions$trees[[i]]$measurements))#[GlobalMapOptions$trees[[i]]$measurements])
@@ -763,7 +771,7 @@ plot_title<-function(subtitle=NULL, year=""){
 text(61, 147, "Site Map Swiss Canopy Crane II, H\u00F6lstein", family = "serif", font = 2)
 if (!is.null(subtitle)) text(61, 144, subtitle, family = "serif", font = 1,cex=0.8)
 text(124, 0, "(c) David Basler 2022-2024, based on work by Cedric Zahnd 2020 and Urs Max Weber 2017)", pos = 2, srt = -90, cex = 0.3)
-text(124, 40, sprintf("Map created %s using site data from %s using the SCC-II modular map tool",Sys.Date(),year), pos = 2, srt = -90, cex = 0.3)
+text(124, 39, sprintf("Current map for %s created on %s ",year,Sys.Date()), pos = 2, srt = -90, cex = 0.3)
 }
 
 

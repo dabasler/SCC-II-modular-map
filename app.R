@@ -11,7 +11,7 @@ library(colourpicker)
 source("plot_scciimap_srv.R")
 
 ui <- fluidPage(
-  titlePanel("SCCII Map Configuration"),
+  titlePanel("SCC-II Map Generation Tool"),
   sidebarLayout(
     sidebarPanel(
       h3("Preconfigured Maps"),
@@ -200,7 +200,7 @@ server <- function(input, output, session) {
             br(),
           ),
           sliderInput(paste0(tree_id, "_alpha"), "Transparency", min = 0, max = 100, value = (tree_config$alpha/255-1)*100 ),
-          selectInput(paste0(tree_id, "_highlight_shape"), "Highlight Shape", choices = c("none", "circle", "rect","underline"), selected = ifelse(is.na(tree_config$highlight_shape),"none",tree_config$highlight_shape)),
+          selectInput(paste0(tree_id, "_highlight_shape"), "Highlight Shape", choices = c("none", "circle", "cross" ,"rect","underline"), selected = ifelse(is.na(tree_config$highlight_shape),"none",tree_config$highlight_shape)),
           colourInput(paste0(tree_id, "_highlight_color"), "Highlight Color", value = tree_config$highlight_color),
           h5("Measurements"),
           checkboxInput(paste0(tree_id, "_pointdm"), "Point DM", value = tree_config$measurements$pointdm),
@@ -260,7 +260,7 @@ server <- function(input, output, session) {
                        size_dbh = input[[paste0(tree_id, "_size")]],
                        customsize = ifelse(is.null(input[[paste0(tree_id, "_csize")]]), 1,input[[paste0(tree_id, "_csize")]]),
                        numbers = input[[paste0(tree_id, "_numbers")]],
-                       alpha = 255 - (input[[paste0(tree_id, "_alpha")]] / 100 * 255),
+                       alpha = 255 - as.numeric((input[[paste0(tree_id, "_alpha")]]) / 100 * 255),
                        highlight_shape = ifelse(input[[paste0(tree_id, "_highlight_shape")]] == "none", NA, input[[paste0(tree_id, "_highlight_shape")]]),
                        highlight_color = input[[paste0(tree_id, "_highlight_color")]],
                        measurements = list(
