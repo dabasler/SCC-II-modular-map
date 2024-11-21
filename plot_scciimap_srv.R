@@ -87,14 +87,17 @@ parse_flt_string<-function(fltstr,year,metadata){ # mdn is metadatanames , do no
     metadata$dbh[!is.na(metadata[[sprintf("dbh_%s",ystr)]])]<- metadata[!is.na(metadata[[sprintf("dbh_%s",ystr)]]),sprintf("dbh_%s",ystr)]
     mdn<-mdn[-which(mdn==sprintf("dbh_%s",ystr))]
   }
-  if (as.numeric(ystr) < 2021) fltstr<-gsub("status","status_2021",fltstr) # Handle Missing Status column pre2018
-  for ( n in substr(mdn[endsWith(mdn,ystr)],1,nchar(mdn[endsWith(mdn,ystr)])-5) ) fltstr<-sub(n,sprintf("%s_%s",n,ystr),fltstr)
+  ycols<-substr(mdn[endsWith(mdn,ystr)],1,nchar(mdn[endsWith(mdn,ystr)])-5) #basename of columns wich contain year
+  for ( n in  ycols) fltstr  <- gsub(sprintf("\\b%s(?!_\\d{4})\\b",n), sprintf("%s_%s",n,ystr), fltstr, perl = TRUE) #replace shorthands with year if not already specified
   for (n in mdn) fltstr<-sub(n,sprintf("metadata$%s",n),fltstr) # Add Table Name
   fltstr <- sub('alive',sprintf("metadata$status_%s=='a'",ystr),fltstr)
   fltstr <- sub('dead',sprintf("metadata$status_%s!='a'",ystr),fltstr)
   print(fltstr)
-  return(eval(parse(text = fltstr)))
+  out<-FALSE
+  try (out<-eval(parse(text = fltstr)),silent=TRUE)
+  return(out)
 }
+
 
   
 treecolor<-function(species=NULL,as.hex=TRUE){

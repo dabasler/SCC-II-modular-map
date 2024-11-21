@@ -219,17 +219,30 @@ server <- function(input, output, session) {
     
     
     observeEvent(input$filter_info, {
+      column_names <- colnames(metadata)
+      # Create a bullet list of column names
+      column_list <- tags$ul(
+        lapply(column_names, function(col) {
+          tags$li(col)
+        })
+      )
+      
+      # Show the modal dialog with the optimized text
       showModal(modalDialog(
-        title = "Filter Values Explanation",
-        p("Filter values allow you to refine data displayed on the map based on specific criteria."),
-        p("The filter is applied for the selected year"),
+        title = "Filter Builder Help",
+        p("The Filter Builder allows you to refine the dataset by applying criteria to specific variables."),
+        p("You can use commonly suggested filters or manually create advanced conditions. Example usage:"),
         tags$ul(
-          tags$li("Numeric columns: Use operators like '==', '<', '>' to filter data numerically."),
-          tags$li("Categorical columns: Select specific categories from the dropdown."),
-          tags$li("Combine filters: Use 'AND' and 'OR' to build complex filter conditions.")
+          tags$li("For numeric variables, use operators like `==`, `<`, or `>` to filter data."),
+          tags$li("For categorical variables, select specific values from the dropdown."),
+          tags$li("Combine conditions using `AND` or `OR` for more complex filters.")
         ),
-        p("Example Filters:"),
-        tags$pre("ColumnName == 'Category1' AND AnotherColumn > 10"),
+        p("Some suggested variables are shorthand for the selected year and are expanded internally. For instance:"),
+        tags$pre("status == 'a'"),
+        p("If the selected year is 2024, this will filter for trees alive in 2024, corresponding to the `status_2024` field."),
+        p("Advanced users can manually enter filters following R's syntax, referencing full column names."),
+        p("Here’s a list of all available columns in the database:"),
+        column_list,  # Include the dynamically generated column list
         footer = modalButton("Close")  # Add a close button
       ))
     })
