@@ -1,6 +1,5 @@
 # Shiny UI for the "plot_scciimap_srv.R" map plotting script for the Swiss Canopy Crane site
 # Code by D.Basler 2024
-
 packages <- c("shiny","colourpicker","dplyr","plotrix","shape","png","readxl")
 install.packages(setdiff(packages, rownames(installed.packages())))
 
@@ -65,7 +64,7 @@ ui <- fluidPage(
         HTML("<p>SCCII is a research site of the PPE group at the University of Basel <br>"),
         tags$a(href = "https://ppe.duw.unibas.ch/en/sccii/", target = "_blank", "About the research site"),
         HTML("</p>"),
-        HTML("<p>copyright &copy; 2024 David Basler / DaBaScientific</p>"),
+        HTML("<p> v.1.0.6 <br> copyright &copy; 2024 David Basler / DaBaScientific</p>"),
         tags$a(href = "https://dabascientific.com/hoelstein/phenocam/", target = "_blank", "Visit the SCC-II Dashboard")
       ) 
     ),

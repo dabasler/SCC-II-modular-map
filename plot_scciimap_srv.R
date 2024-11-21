@@ -13,10 +13,19 @@ library(readxl)
 ############### PLOTTING FUNCTIONS
 data_import<-function(mapdatapath,metadatapath){
   metadata <- read_excel(path = file.path(mapdatapath ,"datasheets/Metadata_Trees_SCCII.xlsx"), sheet = 1, na = "NA")
+  metadata <- metadata[!is.na(metadata$xcor),]
   metadata <-LV03toLocal(metadata)
+  
   metadata <-metadata[!is.na(metadata$species),]
-  metadata <-metadata[-grep("x",metadata$nr),]
-  names(metadata)[7]<-'dbh'
+  metadata <-metadata[-grep("x",metadata$nr),] # Remove Small Trees
+  metadata$dbh <- metadata$dbh_2017
+  names(metadata)[names(metadata)=="crane_access_2021"]<-"crane_access"
+  names(metadata)[names(metadata)=="height_2021"]<-"height"
+  metadata$nr <- as.numeric(metadata$nr)
+  metadata$height <- as.numeric(metadata$height)
+  metadata$block <- as.character(metadata$block)
+  metadata$soil_pit <- as.character(metadata$soil_pit)
+  metadata$target_pair <- as.character(metadata$target_pair)
   metadata$dbh[is.na(metadata$dbh)]<-metadata$dbh_2022[is.na(metadata$dbh)]
   metadata$nr_pos[is.na(metadata$nr_pos)]<-"t"
   metadata$dm_pos[is.na(metadata$dm_pos)]<-"l"
@@ -434,56 +443,42 @@ plot_roofs<-function(numbers=TRUE,plotall="ALL"){
 }
 
 
-
-
 plot_full_tree_measurements<-function(data,variables=c('banddm','pointdm'),year=NA){
   if (is.na(year)) year <- as.numeric(substr(Sys.Date(),1,4))
   if (nrow(data)==0) return()
   # Girth tapes:
   if ('banddm' %in% variables){
     colname<-sprintf("banddm_%s",year)
-    with(data[data[,colname]== TRUE,], text(defx, defy, "G", col = "white", cex = 0.4))
+    valid_rows <- data[, colname] == TRUE &!is.na(data[, colname])
+    if (any(valid_rows)) text(data$defx[valid_rows], data$defy[valid_rows], "G", col = "white", cex = 0.4)
   }
   # Point dendrometer:
   if ('pointdm' %in% variables){
     colname<-sprintf("pointdm_%s",year)
-    with(data[data[,colname] == TRUE & data$dm_pos == "l",], arrows(x0 = defx - ((sqrt(dbh)/4)+1)/4, y0 = defy, x1 = defx - ((sqrt(dbh)/4)+1)/2, angle = 150, col = "red", length = 0.04, lwd = 1))
-    with(data[data[,colname] == TRUE & data$dm_pos == "r",], arrows(x0 = defx + ((sqrt(dbh)/4)+1)/4, y0 = defy, x1 = defx + ((sqrt(dbh)/4)+1)/2, angle = 150, col = "red", length = 0.04, lwd = 1))
-    with(data[data[,colname] == TRUE & data$dm_pos == "b",], arrows(x0 = defx, y0 = defy - ((sqrt(dbh)/4)+1)/4, y1 = defy - ((sqrt(dbh)/4)+1)/2, angle = 150, col = "red", length = 0.04, lwd = 1))
+    valid_rows <- data[,colname] == TRUE & data$dm_pos == "l" &!is.na(data[, colname])
+    if (any(valid_rows))  arrows(x0 = data$defx[valid_rows] - ((sqrt(data$dbh[valid_rows])/4)+1)/4, y0 = data$defy[valid_rows], x1 = data$defx[valid_rows] - ((sqrt(data$dbh[valid_rows])/4)+1)/2, angle = 150, col = "red", length = 0.04, lwd = 1)
+    valid_rows <- data[,colname] == TRUE & data$dm_pos == "r" &!is.na(data[, colname])
+    if (any(valid_rows))  arrows(x0 = data$defx[valid_rows] + ((sqrt(data$dbh[valid_rows])/4)+1)/4, y0 = data$defy[valid_rows], x1 = data$defx[valid_rows] + ((sqrt(data$dbh[valid_rows])/4)+1)/2, angle = 150, col = "red", length = 0.04, lwd = 1)
+    valid_rows <- data[,colname] == TRUE & data$dm_pos == "b" &!is.na(data[, colname])
+    if (any(valid_rows))  arrows(x0 = data$defx[valid_rows], y0 = data$defy[valid_rows] - ((sqrt(data$dbh[valid_rows])/4)+1)/4, y1 = data$defy[valid_rows] - ((sqrt(data$dbh[valid_rows])/4)+1)/2, angle = 150, col = "red", length = 0.04, lwd = 1)
   }  
-  
-  #Soil Moisture
+  #Soil Moisture:
   if ('soilmt' %in% variables){
-    colname<-sprintf("soilmt_%s",year)
-    with(data[data[,colname] == TRUE,] , rasterImage(drop_icon, defx+0.8, defy+0.6, defx+1.3, defy+1.5))
+    colname<-sprintf("soilmt_%s",year) 
+    valid_rows <- data[, colname] == TRUE &!is.na(data[, colname])
+    if (any(valid_rows)) rasterImage(drop_icon, data$defx[valid_rows]+0.8, data$defy[valid_rows]+0.6, data$defx[valid_rows]+1.3, data$defy[valid_rows]+1.5)
   }    
-  # if ('leafwp' %in% variables){
-  #   colname<-sprintf("leafwp_%i",year)
-  #   with(data[data[,colname]== TRUE,], text(defx, defy, "G", col = "white", cex = 0.4))
-  # }
-  # 
-  # if ('nsc' %in% variables){
-  #   colname<-sprintf("nsc_%i",year)
-  #   with(data[data[,colname]== TRUE,], text(defx, defy, "G", col = "white", cex = 0.4))
-  # }
-  # 
+  #Sapflow:
   if ('sapflow' %in% variables){
     colname<-sprintf("sapflow_%s",year)
-    if (nrow(data[data[,colname] == TRUE,])>0)  {
-      with(data[data[,colname] == TRUE & data$dm_pos != "r",], arrows(x0 = defx+((sqrt(dbh)/4)+1)/3, y0 = defy-((sqrt(dbh)/4)+1)/3,  y1= defy+((sqrt(dbh)/4)+1)/4, angle = 30, col = "red", length = 0.04, lwd = 1))
-      with(data[data[,colname] == TRUE & data$dm_pos == "r",], arrows(x0 = defx-((sqrt(dbh)/4)+1)/3, y0 = defy-((sqrt(dbh)/4)+1)/3,  y1= defy+((sqrt(dbh)/4)+1)/4, angle = 30, col = "red", length = 0.04, lwd = 1)) 
-    }
+    valid_rows <- data[, colname] == TRUE & data$dm_pos != "r" &!is.na(data[, colname])
+    if (any(valid_rows)) arrows(x0 = data$defx[valid_rows]+((sqrt(data$dbh[valid_rows])/4)+1)/3, y0 = data$defy[valid_rows]-((sqrt(data$dbh[valid_rows])/4)+1)/3,  y1= data$defy[valid_rows]+((sqrt(data$dbh[valid_rows])/4)+1)/4, angle = 30, col = "red", length = 0.04, lwd = 1)
+    valid_rows <- data[, colname] == TRUE & data$dm_pos == "r" &!is.na(data[, colname])
+    if (any(valid_rows)) arrows(x0 = data$defx[valid_rows]-((sqrt(data$dbh[valid_rows])/4)+1)/3, y0 = data$defy[valid_rows]-((sqrt(data$dbh[valid_rows])/4)+1)/3,  y1= data$defy[valid_rows]+((sqrt(data$dbh[valid_rows])/4)+1)/4, angle = 30, col = "red", length = 0.04, lwd = 1)    
   }
-  # if ('phenocam' %in% variables){
-  #   colname<-sprintf("phenocam_%i",year)
-  #   with(data[data[,colname]== TRUE,], text(defx, defy, "G", col = "white", cex = 0.4))
-  # }
-
 }
 
 
-
-#TO DO cable to trees
 plot_sapflow<-function(cable=TRUE){
   boxdim<-1
   if (cable){
