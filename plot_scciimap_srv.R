@@ -438,6 +438,7 @@ plot_roofs<-function(numbers=TRUE,plotall="ALL"){
 
 plot_full_tree_measurements<-function(data,variables=c('banddm','pointdm'),year=NA){
   if (is.na(year)) year <- as.numeric(substr(Sys.Date(),1,4))
+  if (nrow(data)==0) return()
   # Girth tapes:
   if ('banddm' %in% variables){
     colname<-sprintf("banddm_%s",year)
